@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Pro Backend Chat</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css" />
+        <style>
+            #chat-screen {
+                display: none;
+            }
+            #messages {
+                height: 400px;
+                overflow-y: scroll;
+                border: 1px solid #ccc;
+                padding: 10px;
+                margin-bottom: 10px;
+            }
+            .system-msg {
+                color: #888;
+                font-style: italic;
+            }
+            .meta {
+                font-size: 0.8em;
+                color: #666;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Backend-First Chat System</h1>
+
+        <div id="login-screen">
+            <input type="text" id="username" placeholder="(e.g. Alice)" />
+            <input type="text" id="room" placeholder="Enter Room (e.g. DevOps)" />
+            <button onclick="joinRoom()">Join Room</button>
+        </div>
+
+        <div id="chat-screen">
+            <h3 id="room-title">Room:</h3>
+            <div id="messages"></div>
+            <div style="display: flex; gap: 10px">
+                <input
+                    type="text"
+                    id="msg-input"
+                    placeholder="Type a message..."
+                    style="flex-grow: 1"
+                />
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+
+        <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+        <script>
+            const socket = io();
+            let currentUser = '';
+            let currentRoom = '';
+
+            const messagesDiv = document.getElementById('messages');
+
+            // --- ACTIONS ---
+            function joinRoom() {
+                const username = document.getElementById('username').value;
+                const room = document.getElementById('room').value;
+
+                if (!username || !room) return alert('Please fill both fields');
+
+                currentUser = username;
+                currentRoom = room;
+
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('chat-screen').style.display = 'block';
+                document.getElementById('room-title').innerText = `Room: ${currentRoom}`;
+
+                socket.emit('join_room', { username, room });
+            }
+
+            function sendMessage() {
+                const input = document.getElementById('msg-input');
+                const text = input.value;
+                if (text) {
+                    socket.emit('send_message', { username: currentUser, room: currentRoom, text });
+                    input.value = '';
+                }
+            }
+
+            // --- LISTENERS ---
+
+            // 1. Receive standard messages
+            socket.on('receive_message', (data) => {
+                appendMessage(data);
+            });
+
+            // 2. Load History (Bulk add)
+            socket.on('load_history', (history) => {
+                history.forEach((msg) => appendMessage(msg));
+                // Scroll to bottom
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            });
+
+            // Helper function to render HTML
+            function appendMessage(data) {
+                const div = document.createElement('div');
+
+                const timeSource = data.createdAt || data.timestamp || new Date();
+                const date = new Date(timeSource).toLocaleTimeString();
+                div.innerHTML = `
+                <strong>${data.user}:</strong> ${data.text} 
+                <span class="meta">[${date}]</span>
+            `;
+
+                if (data.user === 'SYSTEM') div.className = 'system-msg';
+
+                messagesDiv.appendChild(div);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+        </script>
+    </body>
+</html>
