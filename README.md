@@ -1,6 +1,6 @@
-# Pro-Chat-Backend
+# Pro-Chat
 
-Pro-Chat-Backend is the backend component for a real-time chat application. It handles user connections, message broadcasting, and persistent storage of chat messages.
+Pro-Chat is the backend component for a real-time chat application. It handles user connections, message broadcasting, and persistent storage of chat messages.
 
 ## Features
 
